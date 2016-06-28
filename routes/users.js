@@ -9,8 +9,8 @@ var connection = mysql.createConnection({
     database: ''
 });
 
-var select_sql = 'SELECT * FROM member WHERE id=?';
 /* GET users listing. */
+var select_sql = 'SELECT * FROM member WHERE id=?';
 router.get('/:content_id', function (req, res, next) {
     var params = [req.params.content_id];
     connection.query(select_sql, params, function (error, cursor) {
@@ -23,6 +23,19 @@ router.get('/:content_id', function (req, res, next) {
             });
         }
     });
+});
+
+router.get('/check/:content_email', function(req, res, next) {
+    var sql = 'SELECT * FROM member WHERE email=?';
+    var params = [req.params.content_email];
+    connection.query(sql, params, function (error, cursor) {
+        if(cursor.length > 0) {
+            res.json({ result: true });
+        }
+        else {
+            res.json({ result: false });
+        }
+    })
 });
 
 router.post('/', function (req, res, next) {
