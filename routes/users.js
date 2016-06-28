@@ -3,10 +3,10 @@ var mysql = require('mysql');
 var router = express.Router();
 
 var connection = mysql.createConnection({
-    host: 'soon.japanwest.cloudapp.azure.com',
-    user: 'alzzauser',
-    password: 'alzza',
-    database: 'alzza'
+    host: '',
+    user: '',
+    password: '',
+    database: ''
 });
 
 var select_sql = 'SELECT * FROM member WHERE id=?';
