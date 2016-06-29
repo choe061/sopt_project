@@ -1,6 +1,7 @@
 /**
  * Created by choi on 2016-06-29.
  */
+var bcrypt = require('bcrypt-nodejs');
 var router = express.Router();
 var Schema = require('ee-mysql-schema');
 var schema = new Schema({

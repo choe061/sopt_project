@@ -3,7 +3,6 @@
  */
 var express = require('express');
 var mysql = require('mysql');
-var bcrypt = require('bcrypt-nodejs');
 var jwt = require('jsonwebtoken');
 var bodyParser = require('body-parser');
 var User = require('./user');
