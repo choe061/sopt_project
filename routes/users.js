@@ -10,8 +10,8 @@ var connection = mysql.createConnection({
 });
 
 /* GET users listing. */
-var select_sql = 'SELECT * FROM member WHERE id=?';
 router.get('/:content_id', function (req, res, next) {
+    var select_sql = 'SELECT * FROM member WHERE id=?';
     var params = [req.params.content_id];
     connection.query(select_sql, params, function (error, cursor) {
         if(cursor.length > 0) {
