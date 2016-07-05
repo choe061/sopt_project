@@ -25,5 +25,4 @@ router.get('/:content_id', function (req, res, next) {
     });
 });
 
-
 module.exports = router;
