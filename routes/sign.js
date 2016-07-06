@@ -12,6 +12,8 @@ var router = express.Router();
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: false }));
 
+var secret = 'chlqjarbs';   //token생성을 위한 secret key
+
 var connection = mysql.createConnection({
     host: '',
     port: '',
@@ -20,86 +22,8 @@ var connection = mysql.createConnection({
     database: ''
 });
 
-router.post('/in', function (req, res, next) {
-    var select_sql = 'SELECT * FROM user WHERE email in (?) AND pw in (?)';
-    var update_sql = 'UPDATE user SET token=? WHERE email=?';
-    var email = req.body.email;
-    var pw = req.body.pw;
-    connection.query(select_sql, [email, pw], function (err, user) {
-        if(err) {
-            console.log('500: server error');
-            res.status(500).json(err);
-        }
-        else {
-            if(!user[0]) {
-                console.log('404: incorrect email or pw');
-                res.status(404).json({
-                    result: false,
-                    reason: 'email또는 password 잘못됨'
-                });
-            }
-            else if(user[0]) {
-                console.log(user[0]);
-                var body = {email: email, pw: pw};
-                var secret = 'chlqjarbs';
-
-                var token = jwt.sign(
-                    body,
-                    secret,
-                    {
-                        expiresIn: '0.5h'   //만료기한 30분 설정
-                    },{
-                        algorithm: 'HS256'  //HMAC using SHA-256 hash algorithm
-                    });
-
-                console.log('token : ' + token);
-
-                res.set({
-                    'Content-Type': 'application/json',
-                    'ETag': token
-                });
-                res.status(200).json({
-                    result: true,
-                    reason: '토큰 발급 성공'
-                });
-                var decoded = jwt.decode(token, secret);
-                console.log('decoded : ' + JSON.stringify(decoded));
-                connection.query(update_sql, [token, email], function (err, data) {
-                    if(err) {
-                        console.log('토큰 저장 실패');
-                    }
-                    else {
-                        console.log('토큰 저장 성공');
-                    }
-                });
-            }
-        }
-    });
-});
-
-/*
-router.use(function (req, res, next) {
-    console.log('사용자가 app에 입장');
-    var token = req.body.token || req.query.token || req.headers['x-access-token'];
-    if(token) {
-        jwt.verify(token, superSecret, function (err, decoded) {
-            if(err) {
-                throw err;
-                return res.status(403).send({ result: false, reason: '토큰 인증 실패' });
-            }
-            else {
-                req.decoded = decoded;
-                next();
-            }
-        });
-    }
-    else {
-        return res.status(403).send({ result: false, reason: '토큰을 받지 못함' });
-    }
-});*/
-
 router.get('/duplication/', function(req, res, next) {
-    var sql = 'SELECT * FROM user WHERE email=?';
+    var sql = 'SELECT * FROM member WHERE email=?';
     var params = [req.query.email];
     connection.query(sql, params, function (error, cursor) {
         if(cursor.length > 0) {
@@ -112,7 +36,7 @@ router.get('/duplication/', function(req, res, next) {
 });
 
 router.post('/up', function (req, res, next) {
-    var insert_sql = 'INSERT INTO member(email, pw, university, nickname, grade, type1, type2, type3, type4, type5) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    var insert_sql = 'INSERT INTO member(email, pw, university, nickname, grade, type1, type2, type3, type4, type5, satisfaction, usertype) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
     var select_sql = 'SELECT * FROM member WHERE id=?';
     var params = [
         req.body.email,
@@ -124,7 +48,9 @@ router.post('/up', function (req, res, next) {
         req.body.type2,
         req.body.type3,
         req.body.type4,
-        req.body.type5
+        req.body.type5,
+        req.body.satisfaction,
+        req.body.usertype
     ];
     connection.query(insert_sql, params, function (err, info) {
         if(err == null) {
@@ -141,7 +67,9 @@ router.post('/up', function (req, res, next) {
                         type2: cursor[0].type2,
                         type3: cursor[0].type3,
                         type4: cursor[0].type4,
-                        type5: cursor[0].type5
+                        type5: cursor[0].type5,
+                        satisfaction: cursor[0].satisfaction,
+                        usertype: cursor[0].usertype
                     });
                 }
                 else {
@@ -154,4 +82,90 @@ router.post('/up', function (req, res, next) {
         }
     });
 });
+
+
+router.post('/in', function (req, res, next) {
+    var select_sql = 'SELECT * FROM member WHERE email in (?) AND pw in (?)';
+    var update_sql = 'UPDATE member SET token=(?), exp_time=(?) WHERE email in (?)';
+    var email = req.body.email;
+    var pw = req.body.pw;
+    connection.query(select_sql, [email, pw], function (err, user) {
+        if(err) {
+            console.log('500: server error');
+            res.status(500).json(err);
+        }
+        else {
+            if(!user[0]) {
+                console.log('404: incorrect email or pw');
+                res.status(404).json({
+                    result: false,
+                    reason: 'email또는 password 잘못됨'
+                });
+            }
+            else if(user[0]) {
+                //console.log(user[0]);
+                var d = new Date();
+                var exp_time = d.getTime()+120000;//test버전은 만료시간 2분 //1800000;   //만료시간 : 현재시간+30분으로 설정
+                var body = {email: email, pw: pw};
+
+                var token = jwt.sign(
+                    body,
+                    secret,
+                    {
+                        expiresIn: '0.01h'   //만료기한 30분 설정
+                    },{
+                        algorithm: 'HS256'  //HMAC using SHA-256 hash algorithm
+                    });
+
+                console.log('token : ' + token);
+                res.status(200).json({
+                    result: true,
+                    token: token,
+                    reason: '토큰 발급 성공'
+                });
+                var decoded = jwt.decode(token, secret);
+                console.log('decoded : ' + JSON.stringify(decoded));
+                connection.query(update_sql, [token, exp_time, email], function (err, data) {
+                    if(err) {
+                        console.log('토큰 저장 실패');
+                    }
+                    else {
+                        console.log('토큰 저장 성공');
+                    }
+                });
+            }
+        }
+    });
+});
+
+router.post('/auth', function (req, res, next) {
+    var exp_sql = 'SELECT exp_time FROM member WHERE token=?';
+    var delete_sql = 'UPDATE member SET token=null, exp_time=null WHERE token=?';
+    var params = [req.body.token];
+    connection.query(exp_sql, params, function (error, exp) {
+        if(error) {
+            res.json(error);
+        }
+        else {
+            var d = new Date();
+            var now_time = d.getTime();
+            console.log(exp[0].exp_time);
+            console.log(now_time);
+            if(exp[0].exp_time > now_time) {
+                res.json({ result: true });
+            }
+            else {  //30분이 지났을 경우 token, exp_time 삭제
+                connection.query(delete_sql, params, function (error, cursor) {
+                    if(error) {
+                        res.json(error);
+                    }
+                    else {
+                        res.json({ result: false });
+                    }
+                });
+            }
+        }
+    });
+});
+
 module.exports = router;
